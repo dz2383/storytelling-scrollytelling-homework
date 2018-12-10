@@ -1,4 +1,5 @@
 import * as d3 from 'd3'
+import { debounce } from 'debounce'
 
 var margin = { top: 10, left: 10, right: 10, bottom: 10 }
 
@@ -20,6 +21,14 @@ var radiusScale = d3
   .scaleLinear()
   .domain([10, 100])
   .range([40, radius])
+
+// add colors
+
+var cities = ['NYC', 'Lima', 'Tuscon', 'Beijing', 'Melbourne', 'Stockholm']
+var colorScale = d3
+  .scaleOrdinal()
+  .range(['red', 'green', 'blue', 'yellow', 'salmon', 'orange'])
+  .domain(cities)
 
 var angleScale = d3
   .scalePoint()
@@ -57,8 +66,9 @@ d3.csv(require('./data/all-temps.csv'))
   .catch(err => console.log('Failed on', err))
 
 function ready(datapoints) {
-  var container = svg.append('g')
-    .attr('transform', 'translate(' + (width / 2) + ',' + (height / 2) + ')')
+  var container = svg
+    .append('g')
+    .attr('transform', 'translate(' + width / 2 + ',' + height / 2 + ')')
 
   datapoints.forEach(d => {
     d.high_temp = +d.high_temp
@@ -66,7 +76,7 @@ function ready(datapoints) {
   })
 
   // Filter it so I'm only looking at NYC datapoints
-  let nycDatapoints = datapoints.filter(d => d.city === 'Lima')
+  let nycDatapoints = datapoints.filter(d => d.city === 'NYC')
   nycDatapoints.push(nycDatapoints[0])
 
   container
@@ -74,7 +84,7 @@ function ready(datapoints) {
     .attr('class', 'temp')
     .datum(nycDatapoints)
     .attr('d', line)
-    .attr('fill', 'black')
+    .attr('fill', colorScale('NYC'))
     .attr('opacity', 0.75)
 
   var circleBands = [20, 30, 40, 50, 60, 70, 80, 90]
@@ -117,4 +127,93 @@ function ready(datapoints) {
     .attr('text-anchor', 'middle')
     .attr('font-size', 8)
 
+  function displayCity(city) {
+    d3.selectAll('.colored-text').style('background-color', 'white')
+
+    let cityDatapoints = datapoints.filter(d => d.city === city)
+
+    cityDatapoints.push(cityDatapoints[0])
+
+    container
+      .select('.temp')
+      .datum(cityDatapoints)
+      .attr('d', line)
+      .attr('fill', colorScale(city))
+
+    container.select('.city-name').text(city)
+
+    var labelName = '.label-' + city
+    // console.log(labelName)
+
+    d3.selectAll(labelName).style('background-color', colorScale(city))
+  }
+
+  // Filter it so I'm only looking at NYC datapoints
+
+  function render() {
+    // Calculate height/width
+    let screenWidth = svg.node().parentNode.parentNode.offsetWidth
+    let screenHeight = window.innerHeight
+    let newWidth = screenWidth - margin.left - margin.right
+    let newHeight = screenHeight - margin.top - margin.bottom
+
+    let newRadius = newWidth / 2.5
+    // Update your SVG
+    let actualSvg = d3.select(svg.node().parentNode)
+    actualSvg
+      .attr('height', newHeight + margin.top + margin.bottom)
+      .attr('width', newWidth + margin.left + margin.right)
+
+    // Update scales (depends on your scales)
+    radiusScale.range([40, newRadius])
+
+    // Reposition/redraw your elements
+    container.attr(
+      'transform',
+      'translate(' + newWidth / 2 + ',' + newHeight / 2 + ')'
+    )
+
+    container.select('.temp').attr('d', line)
+
+    container
+      .selectAll('.bands')
+      .attr('r', function(d) {
+        return radiusScale(d)
+      })
+      .lower()
+
+    container.select('.city-name').attr('font-size', 30)
+
+    container
+      .selectAll('.temp-notes')
+      .attr('x', 0)
+      .attr('y', d => -radiusScale(d))
+  }
+
+  window.addEventListener('resize', debounce(render, 1000))
+  render()
+
+  d3.select('#ready-chart-three').on('stepin', () => {
+    displayCity('NYC')
+  })
+
+  d3.select('#NYC').on('stepin', () => {
+    displayCity('NYC')
+  })
+
+  d3.select('#Beijing').on('stepin', () => {
+    displayCity('Beijing')
+  })
+
+  d3.select('#Stockholm').on('stepin', () => {
+    displayCity('Stockholm')
+  })
+
+  d3.select('#Lima').on('stepin', () => {
+    displayCity('Lima')
+  })
+
+  d3.select('#Tuscon').on('stepin', () => {
+    displayCity('Tuscon')
+  })
 }

@@ -1,4 +1,5 @@
 import * as d3 from 'd3'
+import { debounce } from 'debounce'
 
 const margin = {
   top: 50,
@@ -164,7 +165,7 @@ function ready(datapoints) {
       .selectAll('rect')
       .attr('width', xPositionScale.bandwidth())
       .attr('height', d => {
-        return newHight - yPositionScale(d.life_expectancy)
+        return newHeight - yPositionScale(d.life_expectancy)
       })
       .attr('x', d => {
         return xPositionScale(d.country)
